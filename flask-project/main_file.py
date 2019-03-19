@@ -7,8 +7,71 @@ from flask import make_response
 from flask import request
 
 
+class DB:
+    def __init__(self):
+        self.conn = sqlite3.connect('news.db', check_same_thread=False)
+
+    def get_connection(self):
+        return self.conn
+
+    def __del__(self):
+        self.conn.close()
+
+
+class UserModel:
+    def __init__(self, connection):
+        self.connection = connection
+
+    def init_table(self):
+        cursor = self.connection.cursor()
+        cursor.execute('''CREATE TABLE IF NOT EXISTS users
+                            (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            user_name VARCHAR(50),
+                            password_hash VARCHAR(120))''')
+        cursor.close()
+        self.connection.commit()
+
+    def insert(self, user_name, password_hash):
+        cursor = self.connection.cursor()
+        cursor.execute('''INSERT INTO users
+                            (user_name, password_hash)
+                            VALUES (?,?)''', (user_name, password_hash))
+        cursor.close()
+        self.connection.commit()
+
+    def exists(self, user_name, password_hash):
+
+        cursor = self.connection.cursor()
+        cursor.execute('''SELECT * FROM users WHERE user_name = ? AND password_hash = ?''',
+                       (user_name, password_hash))
+        row = cursor.fetchone()
+        cursor.close()
+        return (True, row[0]) if row else (False,)
+
+    def get(self, user_id):
+        cursor = self.connection.cursor()
+        cursor.execute('''SELECT * FROM users WHERE id = ?''', (str(user_id)))
+        row = cursor.fetchone()
+        cursor.close()
+        return row
+
+    def get_all(self):
+        cursor = self.connection.cursor()
+        cursor.execute("SELECT * FROM users")
+        rows = cursor.fetchall()
+        return rows
+
+
+class LoginForm(FlaskForm):
+    username = StringField('Логин', validators=[DataRequired()])
+    password = PasswordField('Пароль', validators=[DataRequired()])
+    remember_me = BooleanField('Запомнить меня')
+    submit = SubmitField('Войти')
+
+
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'pokazeev'
+db = DB()
 
 
 @app.route('/', methods=['GET'])
@@ -74,6 +137,37 @@ def beauty_and_health():
 @app.route('/sport_and_entartainment')
 def sport_and_entertainment():
     return '''<h1>SDGGERH</h1>'''
+
+@app.route('/authorization', methods=['GET', 'POST'])
+def sign_in():
+    form = LoginForm()
+    form.submit.label.text = 'Зарегистрироваться'
+    if form.validate_on_submit():
+        user_name = form.username.data
+        password = form.password.data
+        user_model = UserModel(db.get_connection())
+        exists = user_model.exists(user_name, password)
+        if exists[0]:
+            return render_template('sign_up_error.html',  name='Регистрация', form=form)
+        UserModel(db.get_connection()).insert(user_name, password)
+        session['username'] = user_name
+        session['user_id'] = user_model.exists(user_name, password)[1]
+        return redirect("/index")
+    return render_template('authorization.html', name='Регистрация', form=form)
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    form = LoginForm()
+    if form.validate_on_submit():
+        user_name = form.username.data
+        password = form.password.data
+        user_model = UserModel(db.get_connection())
+        exists = user_model.exists(user_name, password)
+        if exists[0]:
+            session['username'] = user_name
+            session['user_id'] = exists[1]
+        return redirect("/index")
+    return render_template('authorization.html', name='Авторизация', form=form)
 
 
 if __name__ == '__main__':
