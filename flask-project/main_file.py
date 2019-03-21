@@ -72,6 +72,7 @@ class LoginForm(FlaskForm):
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'pokazeev'
 db = DB()
+UserModel(db.get_connection()).init_table()
 
 
 @app.route('/', methods=['GET'])
@@ -138,7 +139,8 @@ def beauty_and_health():
 def sport_and_entertainment():
     return '''<h1>SDGGERH</h1>'''
 
-@app.route('/authorization', methods=['GET', 'POST'])
+
+@app.route('/sign_up', methods=['GET', 'POST'])
 def sign_in():
     form = LoginForm()
     form.submit.label.text = 'Зарегистрироваться'
@@ -152,8 +154,9 @@ def sign_in():
         UserModel(db.get_connection()).insert(user_name, password)
         session['username'] = user_name
         session['user_id'] = user_model.exists(user_name, password)[1]
-        return redirect("/index")
+        return redirect("/lka")
     return render_template('authorization.html', name='Регистрация', form=form)
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -166,8 +169,33 @@ def login():
         if exists[0]:
             session['username'] = user_name
             session['user_id'] = exists[1]
-        return redirect("/index")
+        print('hkjhjkhk')
+        return redirect("/lka")
     return render_template('authorization.html', name='Авторизация', form=form)
+
+
+@app.route('/lka')
+def lka():
+    if 'username' not in session:
+        return redirect('/login')
+    return render_template('lka.html')
+
+
+@app.route('/lka/new_product', methods=['GET', 'POST'])
+def new_product():
+    if 'username' not in session or session['username'] != 'admin':
+        return '''<h1>Доступ к странице закрыт</h1>'''
+    else:
+        if request.method == 'GET':
+            return render_template('new_product.html')
+        elif request.method == 'POST':
+            print(request.form.get('name'))
+            print(request.form.get('category'))
+            print(request.form.get('cost'))
+            print(request.form.get('s-description'))
+            print(request.form.get('b-description'))
+            print(request.form['file'])
+
 
 
 if __name__ == '__main__':

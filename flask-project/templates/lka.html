@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block content %}
+{% if session['username'] == 'admin' %}
+<button class="btn btn-warning"><a href="lka/new_product">Добавть новый продукт</a></button>
+<h1>Последние заказы</h1>
+{% else %}
+<h1>Действуещие заказы</h1>
+<h1>Корзина</h1>
+{% endif %}
+<h1></h1>
+{% endblock %}

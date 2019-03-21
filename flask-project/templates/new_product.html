@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Добаввить новый продукт</h1>
+    <form method="post" enctype="multipart/form-data">
+        <div class="container ">
+            <div class="form-group">
+            <label for="category">Выберите категорию</label>
+            <select class="form-control" id="category" name="category">
+            <option>Телефоны и аксессуары</option>
+            <option>Компьютеры и оргтехника</option>
+            <option>Электроника</option>
+            <option>Бытовая техника</option>
+            <option>Одежда</option>
+            <option>Все для детей</option>
+            <option>Бижутерия и часы</option>
+            <option>Сумки и обувь</option>
+            <option>Для дома и сада</option>
+            <option>Автотовары</option>
+            <option>Красота и здоровье</option>
+            <option>Спорт и развлечение</option>
+            </select>
+        </div>
+            <div class="form-group">
+                <div class="row">
+                    <div class="mx-3">
+                        <label for="name">Название</label>
+                        <input type="text" class="form-control" id="name" name='name'>
+                    </div>
+                    <div class="mx-3">
+                        <label for="cost">Цена</label>
+                        <input type="number" class="form-control" id="cost" name='cost'>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="s-description">Краткое описание</label>
+                <input type="text" class="form-control" id="s-description" name='s-description'>
+            </div>
+            <div class="form-group">
+                <label for="b-description">Полное описание</label>
+                <textarea class="form-control" id="b-description" rows="3" name="b-description"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="file">Выберите картинку</label>
+                <input type="file" class="form-control-file" id="file" name="file">
+            </div>
+            <button type="submit" class="btn btn-primary">Отправить</button>
+        </div>
+    </form>
+
+{% endblock %}
