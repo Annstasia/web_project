@@ -1,65 +1,41 @@
 import sqlite3
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, TextAreaField, PasswordField, BooleanField
-from wtforms.validators import DataRequired
+from wtforms import StringField, SubmitField, TextAreaField, PasswordField, BooleanField,\
+    SelectField, IntegerField, MultipleFileField
+from wtforms.validators import DataRequired, length, NumberRange
 from flask import Flask, render_template, redirect, session, jsonify
 from flask import make_response
 from flask import request
+from flask_sqlalchemy import SQLAlchemy
+import os
+
+app = Flask(__name__)
+app.config['SECRET_KEY'] = 'pokazeev'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///shop.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
 
 
-class DB:
-    def __init__(self):
-        self.conn = sqlite3.connect('news.db', check_same_thread=False)
-
-    def get_connection(self):
-        return self.conn
-
-    def __del__(self):
-        self.conn.close()
+class UserModel(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    password_hash = db.Column(db.String(80), unique=False, nullable=False)
 
 
-class UserModel:
-    def __init__(self, connection):
-        self.connection = connection
+    def __repr__(self):
+        return '<UserModel {} {}>'.format(
+            self.id, self.username, self.password_hash)
 
-    def init_table(self):
-        cursor = self.connection.cursor()
-        cursor.execute('''CREATE TABLE IF NOT EXISTS users
-                            (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                            user_name VARCHAR(50),
-                            password_hash VARCHAR(120))''')
-        cursor.close()
-        self.connection.commit()
 
-    def insert(self, user_name, password_hash):
-        cursor = self.connection.cursor()
-        cursor.execute('''INSERT INTO users
-                            (user_name, password_hash)
-                            VALUES (?,?)''', (user_name, password_hash))
-        cursor.close()
-        self.connection.commit()
+class ProductModel(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    product_name = db.Column(db.String(100), unique=False, nullable=False)
+    category = db.Column(db.String(100), unique=False, nullable=False)
+    cost = db.Column(db.String(50), unique=False, nullable=False)
+    count = db.Column(db.String(50), unique=False, nullable=False)
+    s_description = db.Column(db.String(500), unique=False, nullable=False)
+    b_description = db.Column(db.String(5000), unique=False, nullable=False)
 
-    def exists(self, user_name, password_hash):
-
-        cursor = self.connection.cursor()
-        cursor.execute('''SELECT * FROM users WHERE user_name = ? AND password_hash = ?''',
-                       (user_name, password_hash))
-        row = cursor.fetchone()
-        cursor.close()
-        return (True, row[0]) if row else (False,)
-
-    def get(self, user_id):
-        cursor = self.connection.cursor()
-        cursor.execute('''SELECT * FROM users WHERE id = ?''', (str(user_id)))
-        row = cursor.fetchone()
-        cursor.close()
-        return row
-
-    def get_all(self):
-        cursor = self.connection.cursor()
-        cursor.execute("SELECT * FROM users")
-        rows = cursor.fetchall()
-        return rows
 
 
 class LoginForm(FlaskForm):
@@ -69,93 +45,48 @@ class LoginForm(FlaskForm):
     submit = SubmitField('Войти')
 
 
-app = Flask(__name__)
-app.config['SECRET_KEY'] = 'pokazeev'
-db = DB()
-UserModel(db.get_connection()).init_table()
+class NewProductForm(FlaskForm):
+    category = SelectField('Languages', choices=[
+        ('phones', 'Телефоны и аксессуары'), ('computers', 'Компьютеры и оргтехника'),
+        ('electronics', 'Электроника'), ('appliances', 'Бытовая техника'), ('clothes', 'Одежда'),
+        ('children', 'Все для детей'), ('clock', 'Бижутерия и часы'), ('bag', 'Сумки и обувь'),
+        ('house', 'Для дома и сада'), ('car', 'Автотовары'), ('health', 'Красота и здоровье'),
+        ('sport', 'Спорт и развлечение')])
+    product_name = StringField('Название товара', validators=[DataRequired(), length(max=100)])
+    cost = IntegerField('Цена', validators=[DataRequired(), NumberRange(0, 10**50)])
+    count = IntegerField('Количество', validators=[DataRequired(), NumberRange(0, 10**50)])
+    s_description = TextAreaField('Краткое описание', validators=[length(max=500)])
+    b_description = TextAreaField('Полное описание', validators=[length(max=5000)])
+    pictures = MultipleFileField('Изображения')
+    submit = SubmitField('Добавить')
+
+db.create_all()
 
 
 @app.route('/', methods=['GET'])
 def main_page():
-    return render_template('main_page.html')
-
-
-@app.route('/phone_and_accessories')
-def phone_and_accessories():
-    return '''<h1>SDGGERH</h1>'''
-
-
-@app.route('/computers')
-def computers():
-    return '''<h1>SDGGERH</h1>'''
-
-
-@app.route('/electronics')
-def electronics():
-    return '''<h1>SDGGERH</h1>'''
-
-
-@app.route('/appliances')
-def appliances():
-    return '''<h1>SDGGERH</h1>'''
-
-
-@app.route('/clothes')
-def clothes():
-    return '''<h1>SDGGERH</h1>'''
-
-
-@app.route('/children')
-def children():
-    return '''<h1>SDGGERH</h1>'''
-
-
-@app.route('/bijouterie_and_clocks')
-def bijouterie_and_clocks():
-    return '''<h1>SDGGERH</h1>'''
-
-
-@app.route('/bags_and_shoes')
-def bags_and_shoes():
-    return '''<h1>SDGGERH</h1>'''
-
-
-@app.route('/house_and_garden')
-def house_and_garden():
-    return '''<h1>SDGGERH</h1>'''
-
-
-@app.route('/auto_products')
-def auto_products():
-    return '''<h1>SDGGERH</h1>'''
-
-
-@app.route('/beauty_and_health')
-def beauty_and_health():
-    return '''<h1>SDGGERH</h1>'''
-
-
-@app.route('/sport_and_entartainment')
-def sport_and_entertainment():
-    return '''<h1>SDGGERH</h1>'''
+    return redirect('/sign_up')
 
 
 @app.route('/sign_up', methods=['GET', 'POST'])
 def sign_in():
     form = LoginForm()
+    form.username.errors = []
     form.submit.label.text = 'Зарегистрироваться'
     if form.validate_on_submit():
         user_name = form.username.data
         password = form.password.data
-        user_model = UserModel(db.get_connection())
-        exists = user_model.exists(user_name, password)
-        if exists[0]:
-            return render_template('sign_up_error.html',  name='Регистрация', form=form)
-        UserModel(db.get_connection()).insert(user_name, password)
-        session['username'] = user_name
-        session['user_id'] = user_model.exists(user_name, password)[1]
-        return redirect("/lka")
-    return render_template('authorization.html', name='Регистрация', form=form)
+        try:
+            user1 = UserModel(username=user_name, password_hash=password)
+            db.session.add(user1)
+            db.session.commit()
+            session['username'] = user1.username
+            session['user_id'] = user1.id
+            return redirect("/lka")
+        except Exception as e:
+            form.username.errors = ['Данный пользователь уже существует']
+            return render_template('authorization.html', name='Регистрация', form=form)
+    return render_template('authorization.html', name='Регистрация', form=form, )
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -164,13 +95,12 @@ def login():
     if form.validate_on_submit():
         user_name = form.username.data
         password = form.password.data
-        user_model = UserModel(db.get_connection())
-        exists = user_model.exists(user_name, password)
-        if exists[0]:
-            session['username'] = user_name
-            session['user_id'] = exists[1]
-        print('hkjhjkhk')
-        return redirect("/lka")
+        user = UserModel.query.filter_by(username=user_name, password_hash=password).first()
+        if user:
+            session['username'] = user.username
+            session['user_id'] = user.id
+            return redirect("/lka")
+        form.password.errors = ['Неверный пользователь или пароль']
     return render_template('authorization.html', name='Авторизация', form=form)
 
 
@@ -183,22 +113,28 @@ def lka():
 
 @app.route('/lka/new_product', methods=['GET', 'POST'])
 def new_product():
+    form = NewProductForm()
     if 'username' not in session or session['username'] != 'admin':
         return '''<h1>Доступ к странице закрыт</h1>'''
     else:
-        if request.method == 'GET':
-            return render_template('new_product.html')
-        elif request.method == 'POST':
-            print(request.form.get('name'))
-            print(request.form.get('category'))
-            print(request.form.get('cost'))
-            print(request.form.get('s-description'))
-            print(request.form.get('b-description'))
-            print(request.form['file'])
+        if form.validate_on_submit():
+            '''product = ProductModel(form.product_name.data, form.category.data, form.cost.data, form.count.data,
+                                   form.s_description.data, form.b_description.data)
+            db.session.add(product)
+            db.session.commit()
+            os.mkdir('/static/image/' + product.id)'''
+            print(form.pictures.data)
+            #for i in range(len(request.files.getlist("file"))):
+             #   pass
+                # print(request.files.getlist("file")).name)
+                #request.files.getlist("file").save()
+            # print(request.files.getlist("file"))
+            return redirect('/lka')
+        return render_template('new_product.html', form=form)
+
 
 
 
 if __name__ == '__main__':
     app.run(port=8080, host='127.0.0.1')
-
 

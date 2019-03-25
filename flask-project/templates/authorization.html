@@ -4,6 +4,7 @@
     <h1> {{name}} </h1>
     <form action="" method="post" novalidate>
         {{ form.hidden_tag() }}
+
         {% block error %}{% endblock %}
         <p>
             {{ form.username.label }}<br>
