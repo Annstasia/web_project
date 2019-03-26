@@ -14,13 +14,21 @@
     a:hover {text-decoration: none;}
     a {color: brown}
     .right{margin-left: 80%;}
+    .product_div{background-color: white;
+    height: 200px;}
+    .product_div img{height: 150px;
+    border-radius: 10%;
+    padding: 10px;
+    float: left;}
+    .cost{float: right;
+    margin: 5% 5%}
 </style>
 
 </head>
 <body>
 <header>
-    <a class="right" href="lka">
-        <img src="static/lka.jpg" alt="Вход в личный кабинет"></a></header>
+    <a class="right" href="/lka">
+        <img src="/static/lka.jpg" alt="Вход в личный кабинет"></a></header>
 {% block content %}{% endblock %}
 </body>
 </html>
