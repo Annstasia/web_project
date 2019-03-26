@@ -1,13 +1,14 @@
 import sqlite3
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, TextAreaField, PasswordField, BooleanField,\
-    SelectField, IntegerField, MultipleFileField
+    SelectField, IntegerField, MultipleFileField, FileField
 from wtforms.validators import DataRequired, length, NumberRange
 from flask import Flask, render_template, redirect, session, jsonify
 from flask import make_response
 from flask import request
 from flask_sqlalchemy import SQLAlchemy
 import os
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'pokazeev'
@@ -57,7 +58,6 @@ class NewProductForm(FlaskForm):
     count = IntegerField('Количество', validators=[DataRequired(), NumberRange(0, 10**50)])
     s_description = TextAreaField('Краткое описание', validators=[length(max=500)])
     b_description = TextAreaField('Полное описание', validators=[length(max=5000)])
-    pictures = MultipleFileField('Изображения')
     submit = SubmitField('Добавить')
 
 db.create_all()
@@ -77,7 +77,7 @@ def sign_in():
         user_name = form.username.data
         password = form.password.data
         try:
-            user1 = UserModel(username=user_name, password_hash=password)
+            user1 = UserModel(username=user_name, password_hash=generate_password_hash(password))
             db.session.add(user1)
             db.session.commit()
             session['username'] = user1.username
@@ -95,8 +95,8 @@ def login():
     if form.validate_on_submit():
         user_name = form.username.data
         password = form.password.data
-        user = UserModel.query.filter_by(username=user_name, password_hash=password).first()
-        if user:
+        user = UserModel.query.filter_by(username=user_name).first()
+        if user and check_password_hash(user.password_hash, password):
             session['username'] = user.username
             session['user_id'] = user.id
             return redirect("/lka")
@@ -118,17 +118,21 @@ def new_product():
         return '''<h1>Доступ к странице закрыт</h1>'''
     else:
         if form.validate_on_submit():
-            '''product = ProductModel(form.product_name.data, form.category.data, form.cost.data, form.count.data,
-                                   form.s_description.data, form.b_description.data)
+            product = ProductModel(product_name=form.product_name.data, category=form.category.data,
+                                   cost=form.cost.data, count=form.count.data,
+                                   s_description=form.s_description.data,
+                                   b_description=form.b_description.data)
             db.session.add(product)
             db.session.commit()
-            os.mkdir('/static/image/' + product.id)'''
-            print(form.pictures.data)
-            #for i in range(len(request.files.getlist("file"))):
-             #   pass
-                # print(request.files.getlist("file")).name)
-                #request.files.getlist("file").save()
-            # print(request.files.getlist("file"))
+            path = '/static/image/' + product.id
+            os.mkdir(path)
+            files = request.files.getlist("files")
+            for i in range(len(files)):
+                end = files[i].filename.split('.')[-1]
+                if end not in ['jpg', 'jpeg', 'png', 'bmp', 'raw', 'gif', 'psd', 'tiff']:
+                    form.submit.errors = ['Неверный формат изображения']
+                    return render_template('new_product.html', form=form)
+                files[i].save(path + str(i) + '.' + files[i].filename.split('.')[-1])
             return redirect('/lka')
         return render_template('new_product.html', form=form)
 

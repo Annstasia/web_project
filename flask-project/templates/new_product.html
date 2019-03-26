@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <form action="" method="post" novalidate class="mx-3">
+    <form action="" method="post" novalidate class="mx-3"  enctype="multipart/form-data">
         {{ form.hidden_tag() }}
 
         {% block error %}{% endblock %}
@@ -53,10 +53,12 @@
                 </div>
             {% endfor %}
         </p>
-        <p>
-            {{ form.pictures.label }} <br>
-            {{ form.pictures }}
-        </p>
+        <input type="file" name="files" multiple>
+        {% for error in form.submit.errors %}
+                <div class="alert alert-danger" role="alert">
+                    {{ error }}
+                </div>
+        {% endfor %}
         <p>{{ form.submit() }}</p>
     </form>
 {% endblock %}
