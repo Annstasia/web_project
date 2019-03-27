@@ -38,6 +38,12 @@ class ProductModel(db.Model):
     main_photo = db.Column(db.String(100), unique=False, nullable=True)
 
 
+class BasketModel(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    product_id = db.Column(db.Integer, unique=False, nullable=False)
+    user_id = db.Column(db.Integer, unique=False, nullable=False)
+
+
 
 
 class LoginForm(FlaskForm):
@@ -68,12 +74,6 @@ db.create_all()
 def main_page():
     return render_template('main_page.html')
 
-
-@app.route('/categories/<category>')
-def category_product(category):
-    products = ProductModel.query.filter_by(category=category).all()[:100]
-
-    return render_template('category_product.html', products=products)
 
 
 @app.route('/sign_up', methods=['GET', 'POST'])
@@ -147,6 +147,31 @@ def new_product():
                 files[i].save(path + '\\' + str(i) + '.' + files[i].filename.split('.')[-1])
             return redirect('/lka')
         return render_template('new_product.html', form=form)
+
+
+@app.route('/categories/<category>')
+def category_product(category):
+    products = ProductModel.query.filter_by(category=category).all()[:100]
+    return render_template('category_product.html', products=products)
+@app.route('/categories/<category>/<int:id>', methods=['POST', 'GET'])
+def product_page(category, id):
+
+    if request.method == 'GET':
+        product = ProductModel.query.filter_by(id=id).first()
+        images = ['\\static\\image\\' + str(id) + '\\' + i
+                  for i in os.listdir('static\\image\\' + str(id))]
+        number = len(images)
+        return render_template('product_page.html', product=product, images=images, number=number)
+    if request.method == 'POST':
+        print('sdfgh')
+        if request.form['submit_button'] == 'append':
+            if 'user_id' not in session:
+                return redirect('/login')
+            basket_product = BasketModel(product_id=id, user_id=session['user_id'])
+            db.session.add(basket_product)
+            db.session.commit()
+            return redirect('/lka')
+
 '''
 product = ProductModel.query.filter_by(id=1).first()
 db.session.delete(product)
@@ -158,75 +183,3 @@ db.session.commit()'''
 if __name__ == '__main__':
     app.run(port=8080, host='127.0.0.1')
 
-
-
-'''Xiaomi Redmi 4A. Золотой цвет. Бюджетный смартфон. 2SIM. Android. Оперативная память: 2Гб. Основная память: 32Гб'''
-'''Бренд:XIAOMI
-Разблокировка телефона:Да
-Режимы сети:2SIM/Multi-Bands
-Поддерживаемый язык:Французский,Немецкий,Русский,Польский,Английский,Турецкий,Итальянский,Испанский,Португальский
-Функция:HD-видеоплеер,Сообщения,Видеоплеер,Воспроизведение MP3,Слот для карт памяти,E-mail,Bluetooth,FM-радио,GPRS,Датчик гравитации,Сенсорный экран,Фронтальная камера,QWERTY-клавиатура,GPS-навигация,Wi-Fi
-Состояние товара:Новый
-Тип аккумулятора:Не съёмный
-Год выпуска:2017
-Тип сенсора экрана:Ёмкостный
-Разрешение дисплея:1280x720
-Производитель процессора:Qualcomm
-Ёмкость аккумулятора:3120mAh(typ)
-Фронтальная камера:5 Мп
-Основная камера:13.0 Мп
-Количество камер:1 основная + 1 фронтальная
-Число ядер процессора:Четырёхъядерный
-Оперативная память:2 Г
-Операционная система:Android
-Модель Xiaomi:Редми 4A 2 ГБ 32 ГБ
-Цветность дисплея:Цвет
-Разрешение видеозаписи:720 P
-Стандарты связи:GSM/WCDMA/LTE
-Размер дисплея:5.0
-Количество SIM-карт:2
-Дизайн:Моноблок
-Толщина:Ультратонкий (< 9мм)
-Размеры:139.5x8.5x70.4mm
-Google Play :Да
-Встроенная память:32 Г
-Время разговора:About 6-8 hours
-CPU:Snapdragon 425 Quad Core up to 1.4GHz
-GPU:Adreno 308 , 500MHz
-Camera:Back 13.0MP; 
-Front 5.0MP
-Screen:5.0" HD 1280x720pxOS:MIUI 8.1 Based on Android 6.0.12G:GSM B2/B3/B5/B83G:WCDMA B1/B2/B5/B84G:FDD-LTE B1/B3/B4/B5/B7/B20;TD-LTE B38/B40
-Бренд:XIAOMI
-Разблокировка телефона:Да
-Режимы сети:2SIM/Multi-Bands
-Поддерживаемый язык:Французский,Немецкий,Русский,Польский,Английский,Турецкий,Итальянский,Испанский,Португальский
-Функция:HD-видеоплеер,Сообщения,Видеоплеер,Воспроизведение MP3,Слот для карт памяти,E-mail,Bluetooth,FM-радио,GPRS,Датчик гравитации,Сенсорный экран,Фронтальная камера,QWERTY-клавиатура,GPS-навигация,Wi-Fi
-Состояние товара:Новый
-Тип аккумулятора:Не съёмный
-Год выпуска:2017
-Тип сенсора экрана:Ёмкостный
-Разрешение дисплея:1280x720
-Производитель процессора:Qualcomm
-Ёмкость аккумулятора:3120mAh(typ)
-Фронтальная камера:5 Мп
-Основная камера:13.0 Мп
-Количество камер:1 основная + 1 фронтальная
-Число ядер процессора:Четырёхъядерный
-Оперативная память:2 Г
-Операционная система:Android
-Модель Xiaomi:Редми 4A 2 ГБ 32 ГБ
-Цветность дисплея:Цвет
-Разрешение видеозаписи:720 P
-Стандарты связи:GSM/WCDMA/LTE
-Размер дисплея:5.0
-Количество SIM-карт:2
-Дизайн:Моноблок
-Толщина:Ультратонкий (< 9мм)
-Размеры:139.5x8.5x70.4mm
-Google Play :Да
-Встроенная память:32 Г
-Время разговора:About 6-8 hours
-CPU:Snapdragon 425 Quad Core up to 1.4GHz
-GPU:Adreno 308 , 500MHz
-Camera:Back 13.0MP; 
-Front 5.0MP'''
