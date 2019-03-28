@@ -44,6 +44,11 @@ class BasketModel(db.Model):
     user_id = db.Column(db.Integer, unique=False, nullable=False)
 
 
+class OrderModel(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    product_id = db.Column(db.Integer, unique=False, nullable=False)
+    user_id = db.Column(db.Integer, unique=False, nullable=False)
+
 
 
 class LoginForm(FlaskForm):
@@ -54,7 +59,7 @@ class LoginForm(FlaskForm):
 
 
 class NewProductForm(FlaskForm):
-    category = SelectField('Languages', choices=[
+    category = SelectField('Categories', choices=[
         ('phones', 'Телефоны и аксессуары'), ('computers', 'Компьютеры и оргтехника'),
         ('electronics', 'Электроника'), ('appliances', 'Бытовая техника'), ('clothes', 'Одежда'),
         ('children', 'Все для детей'), ('clock', 'Бижутерия и часы'), ('bag', 'Сумки и обувь'),
@@ -67,13 +72,43 @@ class NewProductForm(FlaskForm):
     b_description = TextAreaField('Полное описание', validators=[length(max=5000)])
     submit = SubmitField('Добавить')
 
+
+class RedactionProductForm(FlaskForm):
+    category = SelectField('Categories', choices=[
+        ('phones', 'Телефоны и аксессуары'), ('computers', 'Компьютеры и оргтехника'),
+        ('electronics', 'Электроника'), ('appliances', 'Бытовая техника'), ('clothes', 'Одежда'),
+        ('children', 'Все для детей'), ('clock', 'Бижутерия и часы'), ('bag', 'Сумки и обувь'),
+        ('house', 'Для дома и сада'), ('car', 'Автотовары'), ('health', 'Красота и здоровье'),
+        ('sport', 'Спорт и развлечение')])
+    product_name = StringField('Измененное название', validators=[length(max=100)])
+    cost = IntegerField('Новая цена', validators=[NumberRange(0, 10 ** 50)])
+    count = IntegerField('Новое количество', validators=[NumberRange(0, 10 ** 50)])
+    s_description = TextAreaField('Новое краткое описание', validators=[length(max=500)])
+    b_description = TextAreaField('Новое полное описание', validators=[length(max=5000)])
+    submit = SubmitField('Добавить')
+
+
+def find_asked_name(name, ask):
+    print(name)
+    nameList = name.lover().split()
+    askList = ask.lover().split()
+    count = 0
+    for i in nameList:
+        for j in askList:
+            if i == j:
+                count += 1
+    return count
+
+
 db.create_all()
 
 
-@app.route('/', methods=['GET'])
+@app.route('/', methods=['GET', 'POST'])
 def main_page():
-    return render_template('main_page.html')
-
+    if request.method == 'GET':
+        return render_template('main_page.html')
+    elif request.method == 'POST':
+        return redirect('/all/' + request.form['ask'])
 
 
 @app.route('/sign_up', methods=['GET', 'POST'])
@@ -112,11 +147,33 @@ def login():
     return render_template('authorization.html', name='Авторизация', form=form)
 
 
-@app.route('/lka')
+
+@app.route('/logout')
+def logout():
+    session.pop('username',0)
+    session.pop('user_id',0)
+    return redirect('/login')
+
+
+@app.route('/lka', methods=['POST', 'GET'])
 def lka():
     if 'username' not in session:
         return redirect('/login')
-    return render_template('lka.html')
+    basket_products = [ProductModel.query.filter_by(id=i.product_id).first()
+                       for i in BasketModel.query.filter_by(user_id=session['user_id']).all()]
+
+    if request.method == 'POST':
+        print(i for i in request.form)
+        for i in basket_products:
+            print(i)
+            if request.form.get(str(i.id), None) == str(i.id):
+                print(i.id)
+                return redirect('/pay/' + str(i.id))
+    if request.method == 'GET':
+
+        order_products = [ProductModel.query.filter_by(id=i.product_id).first()
+                         for i in OrderModel.query.filter_by(user_id=session['user_id']).all()]
+        return render_template('lka.html', basket_products=basket_products, order_products=order_products)
 
 
 @app.route('/lka/new_product', methods=['GET', 'POST'])
@@ -141,10 +198,9 @@ def new_product():
                     form.submit.errors = ['Неверный формат изображения']
                     return render_template('new_product.html', form=form)
                 if i == 0:
-                    product.main_photo = '\\' + path + \
-                                         '\\0.' + files[i].filename.split('.')[-1]
+                    product.main_photo = '\\' + path + '\\0.' + end
                     db.session.commit()
-                files[i].save(path + '\\' + str(i) + '.' + files[i].filename.split('.')[-1])
+                files[i].save(path + '\\' + str(i) + '.' + end)
             return redirect('/lka')
         return render_template('new_product.html', form=form)
 
@@ -153,17 +209,52 @@ def new_product():
 def category_product(category):
     products = ProductModel.query.filter_by(category=category).all()[:100]
     return render_template('category_product.html', products=products)
+
+@app.route('/all/<ask>')
+def all_categories_ask(ask):
+    products = ProductModel.query.filter_by(product_name=ask).all()[:100]
+    return render_template('category_product.html', products=products)
+
+
 @app.route('/categories/<category>/<int:id>', methods=['POST', 'GET'])
 def product_page(category, id):
-
+    form = RedactionProductForm()
+    product = ProductModel.query.filter_by(id=id).first()
     if request.method == 'GET':
-        product = ProductModel.query.filter_by(id=id).first()
         images = ['\\static\\image\\' + str(id) + '\\' + i
                   for i in os.listdir('static\\image\\' + str(id))]
         number = len(images)
-        return render_template('product_page.html', product=product, images=images, number=number)
-    if request.method == 'POST':
-        print('sdfgh')
+        if 'user_id' in session and BasketModel.query.filter_by(
+                product_id=id, user_id=session['user_id']).first():
+            return render_template('product_page.html', product=product, images=images,
+                                   number=number, in_basket=True, form=form)
+        return render_template('product_page.html', product=product, images=images,
+                               number=number, in_basket=False, form=form)
+    if form.validate_on_submit:
+        if form.category.data:
+            product.category = form.category.data
+        if form.product_name.data:
+            product.product_name = form.product_name.data
+        if form.cost.data:
+            product.cost = form.cost.data
+        if form.count.data:
+            product.count = form.count.data
+        if form.s_description.data:
+            product.s_description = form.s_description.data
+        if form.b_description.data:
+            product.b_description = form.b_description.data
+        db.session.commit()
+        path = os.path.join('static\\image\\', str(product.id))
+        files = request.files.getlist("files")
+        number = len(os.listdir(path))
+        for i in range(len(files)):
+            end = files[i].filename.split('.')[-1]
+            if end not in ['jpg', 'jpeg', 'png', 'bmp', 'raw', 'gif', 'psd', 'tiff']:
+                form.submit.errors = ['Неверный формат изображения']
+                return '''Неверный формат изображения'''
+            files[i].save(path + '\\' + str(number + i) + '.' + end)
+        return redirect('/categories/' + category + '/' + str(id))
+    elif request.method == 'POST':
         if request.form['submit_button'] == 'append':
             if 'user_id' not in session:
                 return redirect('/login')
@@ -171,6 +262,28 @@ def product_page(category, id):
             db.session.add(basket_product)
             db.session.commit()
             return redirect('/lka')
+
+        elif request.form['submit_button'] == 'pay':
+            return redirect('/pay/' + str(id))
+
+
+@app.route('/pay/<int:product_id>')
+def pay(product_id):
+    try:
+
+        product = ProductModel.query.filter_by(id=product_id).first()
+        if product.count == '0':
+            return '''Товара нет на складе'''
+        product.count = str(int(product.count) - 1)
+        basket_product = BasketModel.query.filter_by(product_id=product_id,
+                                                      user_id=session['user_id']).first()
+        order_product = OrderModel(user_id=session['user_id'], product_id=product_id)
+        db.session.add(order_product)
+        db.session.delete(basket_product)
+        db.session.commit()
+        return redirect('/lka')
+    except Exception as e:
+        return e
 
 '''
 product = ProductModel.query.filter_by(id=1).first()

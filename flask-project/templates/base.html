@@ -58,7 +58,7 @@
 	text-align: center;
 	color: grey;
 	position: relative;
-	margin: 2% 30%;
+	margin: 1% 30%;
 	width: 40%;
 }
 
@@ -66,9 +66,14 @@
 
 </head>
 <body>
-<header>
-    <a class="m_right" href="/lka">
-        <img src="/static/lka.jpg" alt="Вход в личный кабинет"></a></header>
+<header  style="height: 50px;">
+    <button type="button" class="btn btn-warning"><a href="/">Главная</a></button>
+    {% block header %}{% endblock %}
+    <a class="f_right" href="/lka">
+        <img src="/static/lka.jpg" alt="Вход в личный кабинет"></a>
+
+
+</header>
 {% block content %}{% endblock %}
 </body>
 </html>

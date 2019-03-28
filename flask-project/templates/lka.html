@@ -2,10 +2,29 @@
 {% block content %}
 {% if session['username'] == 'admin' %}
 <button class="btn btn-warning"><a href="lka/new_product">Добавть новый продукт</a></button>
-<h1>Последние заказы</h1>
-{% else %}
-<h1>Действуещие заказы</h1>
-<h1>Корзина</h1>
 {% endif %}
-<h1></h1>
+<h1>Действуещие заказы</h1>
+{% for product in order_products %}
+<div class="product_div">
+    <img src="{{product.main_photo}}" class="f_left">
+    <div class="name"><h1>{{product.product_name}}</h1></div>
+    <div class="s_description">{{product.s_description}}</div>
+    <h2 style="color: purple;" class="name">Цена за шт: {{product.cost}}</h2>
+
+</div>
+{% endfor %}
+<h1>Корзина</h1>
+{% for product in basket_products %}
+<div class="product_div">
+    <img src="{{product.main_photo}}" class="f_left">
+    <form method="post">
+        <button type="submit" class='cost f_right' name="{{product.id}}" value="{{product.id}}">Оплатить</button>
+    </form>
+    <div class="name"><h1>{{product.product_name}}</h1></div>
+    <div class="s_description">{{product.s_description}}</div>
+    <h2 style="color: purple;" class="name">Цена за шт: {{product.cost}}</h2>
+
+</div>
+{% endfor %}
+<button type="button"><a href="/logout">Выйти</a></button>
 {% endblock %}

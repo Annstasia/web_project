@@ -37,10 +37,78 @@
     <p style="margin-top: 40px;}">{{product.s_description}}</p>
     <h2 style="color: purple">Цена за шт: {{product.cost}}</h2>
     <h5>Количество {{product.count}} шт</h5>
+
     <form method="post">
-    <button type="submit" name="submit_button" class="cost" value="append">Добавить в карзину</button></div>
-<div class="bg-white" style="margin-top: 620px;"></form>
+        {% if in_basket %}
+        <button type="submit" name="submit_button" value="pay" class="cost" >Оплатить</button>
+        {% else %}
+        <button type="submit" name="submit_button" class="cost" value="append">Добавить в карзину</button>
+        {%endif%}
+    </form>
+</div>
+<div class="bg-white" style="margin-top: 620px;">
     <p>{{product.b_description}}</p>
 </div>
-
+{% if session['username'] == 'admin' %}
+<h1>id: {{product.id}}</h1>
+<form action="" method="post" novalidate class="mx-3"  enctype="multipart/form-data">
+        {{ form.hidden_tag() }}
+        {% block error %}{% endblock %}
+        <p>
+            {{ form.category }}
+            {% for error in form.category.errors %}
+                <div class="alert alert-danger" role="alert">
+                    {{ error }}
+                </div>
+            {% endfor %}
+        </p>
+        <p>
+            {{ form.product_name.label }}<br>
+            {{ form.product_name }}<br>
+            {% for error in form.product_name.errors %}
+                <div class="alert alert-danger" role="alert">
+                    {{ error }}
+                </div>
+            {% endfor %}
+        </p>
+        <p>{{ form.cost.label }} <br>
+            {{ form.cost }}<br>
+            {% for error in form.cost.errors %}
+                <div class="alert alert-danger" role="alert">
+                    {{ error }}
+                </div>
+            {% endfor %}</p>
+        <p>{{ form.count.label }} <br>
+            {{ form.count }}
+            {% for error in form.count.errors %}
+                <div class="alert alert-danger" role="alert">
+                    {{ error }}
+                </div>
+            {% endfor %}
+        </p>
+        <p>{{ form.s_description.label }} <br>
+            {{ form.s_description(cols="50", rows="4") }}<br>
+            {% for error in form.s_description.errors %}
+                <div class="alert alert-danger" role="alert">
+                    {{ error }}
+                </div>
+            {% endfor %}
+        </p>
+        <p>{{ form.b_description.label }} <br>
+            {{ form.b_description(cols="100", rows="10") }} <br>
+            {% for error in form.b_description.errors %}
+                <div class="alert alert-danger" role="alert">
+                    {{ error }}
+                </div>
+            {% endfor %}
+        </p>
+        <input type="file" name="files" multiple>
+        {% for error in form.submit.errors %}
+                <div class="alert alert-danger" role="alert">
+                    {{ error }}
+                </div>
+        {% endfor %}
+        <p>{{ form.submit() }}</p>
+    </form>
+{% endif %}
 {% endblock %}
