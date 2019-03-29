@@ -107,7 +107,7 @@ db.create_all()
 def main_page():
     if request.method == 'GET':
         return render_template('main_page.html')
-    elif request.method == 'POST':
+    elif request.method == 'POST' and request.form.get('ask', False):
         return redirect('/all/' + request.form['ask'])
 
 
@@ -205,15 +205,29 @@ def new_product():
         return render_template('new_product.html', form=form)
 
 
-@app.route('/categories/<category>')
+@app.route('/categories/<category>', methods=['GET', 'POST'])
 def category_product(category):
-    products = ProductModel.query.filter_by(category=category).all()[:100]
-    return render_template('category_product.html', products=products)
+    products = ProductModel.query.filter_by(category=category).all()
+    if request.method == 'POST':
+        if request.form.get('cost_sort', None) == 'cost_sort':
+            products = sorted(products, key=lambda s: int(s.cost))
+        elif request.form.get('cost_sort_inv', None) == 'cost_sort_inv':
+            products = sorted(products, key=lambda s: -int(s.cost))
+        elif request.form.get('ask', False):
+            return redirect('/all/' + request.form['ask'])
+    return render_template('category_product.html', products=products[:100])
 
-@app.route('/all/<ask>')
+@app.route('/all/<ask>', methods=['POST', 'GET'])
 def all_categories_ask(ask):
-    products = ProductModel.query.filter_by(product_name=ask).all()[:100]
-    return render_template('category_product.html', products=products)
+    products = ProductModel.query.filter_by(product_name=ask).all()
+    if request.method == 'POST':
+        if request.form.get('cost_sort', None) == 'cost_sort':
+            products = sorted(products, key=lambda s: int(s.cost))
+        if request.form.get('cost_sort_inv', None) == 'cost_sort_inv':
+            products = sorted(products, key=lambda s: -int(s.cost))
+        elif request.form.get('ask', False):
+            return redirect('/all/' + request.form['ask'])
+    return render_template('category_product.html', products=products[:100])
 
 
 @app.route('/categories/<category>/<int:id>', methods=['POST', 'GET'])
@@ -230,32 +244,8 @@ def product_page(category, id):
                                    number=number, in_basket=True, form=form)
         return render_template('product_page.html', product=product, images=images,
                                number=number, in_basket=False, form=form)
-    if form.validate_on_submit:
-        if form.category.data:
-            product.category = form.category.data
-        if form.product_name.data:
-            product.product_name = form.product_name.data
-        if form.cost.data:
-            product.cost = form.cost.data
-        if form.count.data:
-            product.count = form.count.data
-        if form.s_description.data:
-            product.s_description = form.s_description.data
-        if form.b_description.data:
-            product.b_description = form.b_description.data
-        db.session.commit()
-        path = os.path.join('static\\image\\', str(product.id))
-        files = request.files.getlist("files")
-        number = len(os.listdir(path))
-        for i in range(len(files)):
-            end = files[i].filename.split('.')[-1]
-            if end not in ['jpg', 'jpeg', 'png', 'bmp', 'raw', 'gif', 'psd', 'tiff']:
-                form.submit.errors = ['Неверный формат изображения']
-                return '''Неверный формат изображения'''
-            files[i].save(path + '\\' + str(number + i) + '.' + end)
-        return redirect('/categories/' + category + '/' + str(id))
     elif request.method == 'POST':
-        if request.form['submit_button'] == 'append':
+        if request.form.get('submit_button', None) == 'append':
             if 'user_id' not in session:
                 return redirect('/login')
             basket_product = BasketModel(product_id=id, user_id=session['user_id'])
@@ -263,8 +253,33 @@ def product_page(category, id):
             db.session.commit()
             return redirect('/lka')
 
-        elif request.form['submit_button'] == 'pay':
+        elif request.form.get('submit_button', None) == 'pay':
             return redirect('/pay/' + str(id))
+        elif form.validate_on_submit:
+            if form.category.data:
+                product.category = form.category.data
+            if form.product_name.data:
+                product.product_name = form.product_name.data
+            if form.cost.data:
+                product.cost = form.cost.data
+            if form.count.data:
+                product.count = form.count.data
+            if form.s_description.data:
+                product.s_description = form.s_description.data
+            if form.b_description.data:
+                product.b_description = form.b_description.data
+            db.session.commit()
+            path = os.path.join('static\\image\\', str(product.id))
+            files = request.files.getlist("files")
+            number = len(os.listdir(path))
+            for i in range(len(files)):
+                end = files[i].filename.split('.')[-1]
+                if end not in ['jpg', 'jpeg', 'png', 'bmp', 'raw', 'gif', 'psd', 'tiff']:
+                    form.submit.errors = ['Неверный формат изображения']
+                    return '''Неверный формат изображения'''
+                files[i].save(path + '\\' + str(number + i) + '.' + end)
+            return redirect('/categories/' + category + '/' + str(id))
+
 
 
 @app.route('/pay/<int:product_id>')
@@ -286,10 +301,9 @@ def pay(product_id):
         return e
 
 '''
-product = ProductModel.query.filter_by(id=1).first()
+product = BasketModel.query.filter_by(product_id=3).first()
 db.session.delete(product)
 db.session.commit()'''
-
 
 
 

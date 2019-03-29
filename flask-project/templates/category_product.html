@@ -1,4 +1,13 @@
 {% extends "base.html" %}
+{% block header %}
+<form method="post" style="margin: 0;">
+<div><input type="text" name='ask' style="margin-left: 10%; width: 20%;">&#128269
+    <button type="submit" class="btn btn-success" name="cost_sort" value="cost_sort">
+        Сортировать по цене (возростание)</button>
+    <button type="submit" class="btn btn-danger" name="cost_sort_inv" value="cost_sort_inv">
+        Сортировать по цене (убывание)</button>
+</div>
+</form>{% endblock %}
 {% block content %}
 {% for product in products %}
 <a href="/categories/{{product.category}}/{{product.id}}">
