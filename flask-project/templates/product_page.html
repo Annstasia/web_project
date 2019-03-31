@@ -102,12 +102,15 @@
                 </div>
             {% endfor %}
         </p>
-        <input type="file" name="files" multiple>
-        {% for error in form.submit.errors %}
+        <p>
+            <input type="file" name="files" multiple>
+            {% for error in form.submit.errors %}
                 <div class="alert alert-danger" role="alert">
                     {{ error }}
                 </div>
         {% endfor %}
+        </p>
+        <p>{{ form.delete() }} {{ form.delete.label() }}</p>
         <p>{{ form.submit() }}</p>
     </form>
 {% endif %}

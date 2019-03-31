@@ -1,14 +1,13 @@
-import sqlite3
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, TextAreaField, PasswordField, BooleanField,\
-    SelectField, IntegerField, MultipleFileField, FileField
+    SelectField, IntegerField
 from wtforms.validators import DataRequired, length, NumberRange
-from flask import Flask, render_template, redirect, session, jsonify
-from flask import make_response
+from flask import Flask, render_template, redirect, session
 from flask import request
 from flask_sqlalchemy import SQLAlchemy
 import os
 from werkzeug.security import generate_password_hash, check_password_hash
+import shutil
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'pokazeev'
@@ -31,8 +30,8 @@ class ProductModel(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     product_name = db.Column(db.String(100), unique=False, nullable=False)
     category = db.Column(db.String(100), unique=False, nullable=False)
-    cost = db.Column(db.String(50), unique=False, nullable=False)
-    count = db.Column(db.String(50), unique=False, nullable=False)
+    cost = db.Column(db.String(10), unique=False, nullable=False)
+    count = db.Column(db.String(10), unique=False, nullable=False)
     s_description = db.Column(db.String(500), unique=False, nullable=False)
     b_description = db.Column(db.String(5000), unique=False, nullable=False)
     main_photo = db.Column(db.String(100), unique=False, nullable=True)
@@ -50,7 +49,6 @@ class OrderModel(db.Model):
     user_id = db.Column(db.Integer, unique=False, nullable=False)
 
 
-
 class LoginForm(FlaskForm):
     username = StringField('Логин', validators=[DataRequired()])
     password = PasswordField('Пароль', validators=[DataRequired()])
@@ -66,8 +64,8 @@ class NewProductForm(FlaskForm):
         ('house', 'Для дома и сада'), ('car', 'Автотовары'), ('health', 'Красота и здоровье'),
         ('sport', 'Спорт и развлечение')])
     product_name = StringField('Название товара', validators=[DataRequired(), length(max=100)])
-    cost = IntegerField('Цена', validators=[DataRequired(), NumberRange(0, 10**50)])
-    count = IntegerField('Количество', validators=[DataRequired(), NumberRange(0, 10**50)])
+    cost = IntegerField('Цена', validators=[DataRequired(), NumberRange(0, 10**10)])
+    count = IntegerField('Количество', validators=[DataRequired(), NumberRange(0, 10**10)])
     s_description = TextAreaField('Краткое описание', validators=[length(max=500)])
     b_description = TextAreaField('Полное описание', validators=[length(max=5000)])
     submit = SubmitField('Добавить')
@@ -80,11 +78,12 @@ class RedactionProductForm(FlaskForm):
         ('children', 'Все для детей'), ('clock', 'Бижутерия и часы'), ('bag', 'Сумки и обувь'),
         ('house', 'Для дома и сада'), ('car', 'Автотовары'), ('health', 'Красота и здоровье'),
         ('sport', 'Спорт и развлечение')])
-    product_name = StringField('Измененное название', validators=[length(max=100)])
-    cost = IntegerField('Новая цена', validators=[NumberRange(0, 10 ** 50)])
-    count = IntegerField('Новое количество', validators=[NumberRange(0, 10 ** 50)])
+    product_name = StringField('Измененное название', validators=[length(max=50)])
+    cost = StringField('Новая цена', validators=[length(max=10)])
+    count = StringField('Новое количество', validators=[length(max=10)])
     s_description = TextAreaField('Новое краткое описание', validators=[length(max=500)])
     b_description = TextAreaField('Новое полное описание', validators=[length(max=5000)])
+    delete = BooleanField('Удалить товар')
     submit = SubmitField('Добавить')
 
 
@@ -145,7 +144,6 @@ def login():
             return redirect("/lka")
         form.password.errors = ['Неверный пользователь или пароль']
     return render_template('authorization.html', name='Авторизация', form=form)
-
 
 
 @app.route('/logout')
@@ -211,11 +209,12 @@ def category_product(category):
     if request.method == 'POST':
         if request.form.get('cost_sort', None) == 'cost_sort':
             products = sorted(products, key=lambda s: int(s.cost))
-        elif request.form.get('cost_sort_inv', None) == 'cost_sort_inv':
+        if request.form.get('cost_sort_inv', None) == 'cost_sort_inv':
             products = sorted(products, key=lambda s: -int(s.cost))
-        elif request.form.get('ask', False):
+        if request.form.get('ask', False):
             return redirect('/all/' + request.form['ask'])
-    return render_template('category_product.html', products=products[:100])
+    return render_template('category_product.html', products=products)
+
 
 @app.route('/all/<ask>', methods=['POST', 'GET'])
 def all_categories_ask(ask):
@@ -234,17 +233,14 @@ def all_categories_ask(ask):
 def product_page(category, id):
     form = RedactionProductForm()
     product = ProductModel.query.filter_by(id=id).first()
-    if request.method == 'GET':
-        images = ['\\static\\image\\' + str(id) + '\\' + i
-                  for i in os.listdir('static\\image\\' + str(id))]
-        number = len(images)
-        if 'user_id' in session and BasketModel.query.filter_by(
-                product_id=id, user_id=session['user_id']).first():
-            return render_template('product_page.html', product=product, images=images,
-                                   number=number, in_basket=True, form=form)
-        return render_template('product_page.html', product=product, images=images,
-                               number=number, in_basket=False, form=form)
-    elif request.method == 'POST':
+    if not product:
+        return '''<h1 style="background-color: rgb(255, 140, 140)">Товар не найден</h1>'''
+    in_basket = True if 'user_id' in session and BasketModel.query.filter_by(
+            product_id=id, user_id=session['user_id']).first() else False
+    images = ['\\static\\image\\' + str(id) + '\\' + i
+              for i in os.listdir('static\\image\\' + str(id))]
+    number = len(images)
+    if request.method == 'POST':
         if request.form.get('submit_button', None) == 'append':
             if 'user_id' not in session:
                 return redirect('/login')
@@ -255,20 +251,23 @@ def product_page(category, id):
 
         elif request.form.get('submit_button', None) == 'pay':
             return redirect('/pay/' + str(id))
-        elif form.validate_on_submit:
+        if form.validate_on_submit() and form.validate():
             if form.category.data:
                 product.category = form.category.data
             if form.product_name.data:
                 product.product_name = form.product_name.data
             if form.cost.data:
+                if not form.cost.data.isdigit():
+                    form.cost.errors = ['Неверный формат числа']
                 product.cost = form.cost.data
             if form.count.data:
+                if not form.cost.data.isdigit():
+                    form.cost.errors = ['Неверный формат числа']
                 product.count = form.count.data
             if form.s_description.data:
                 product.s_description = form.s_description.data
             if form.b_description.data:
                 product.b_description = form.b_description.data
-            db.session.commit()
             path = os.path.join('static\\image\\', str(product.id))
             files = request.files.getlist("files")
             number = len(os.listdir(path))
@@ -276,22 +275,33 @@ def product_page(category, id):
                 end = files[i].filename.split('.')[-1]
                 if end not in ['jpg', 'jpeg', 'png', 'bmp', 'raw', 'gif', 'psd', 'tiff']:
                     form.submit.errors = ['Неверный формат изображения']
-                    return '''Неверный формат изображения'''
+                    return '''<h1 style="background-color: rgb(255, 140, 140)>
+                    Неверный формат изображения<h1>'''
                 files[i].save(path + '\\' + str(number + i) + '.' + end)
-            return redirect('/categories/' + category + '/' + str(id))
-
+            if form.delete.data:
+                product_model = ProductModel.query.filter_by(id=id).first()
+                db.session.delete(product_model)
+                for i in BasketModel.query.filter_by(product_id=id).all():
+                    db.session.delete(i)
+                for i in OrderModel.query.filter_by(product_id=id).all():
+                    db.session.delete(i)
+                shutil.rmtree('static/image/' + str(id))
+                db.session.commit()
+                return redirect('/categories/' + category)
+            db.session.commit()
+    return render_template('product_page.html', product=product, images=images,
+                           number=number, in_basket=in_basket, form=form)
 
 
 @app.route('/pay/<int:product_id>')
 def pay(product_id):
     try:
-
         product = ProductModel.query.filter_by(id=product_id).first()
         if product.count == '0':
             return '''Товара нет на складе'''
         product.count = str(int(product.count) - 1)
         basket_product = BasketModel.query.filter_by(product_id=product_id,
-                                                      user_id=session['user_id']).first()
+                                                     user_id=session['user_id']).first()
         order_product = OrderModel(user_id=session['user_id'], product_id=product_id)
         db.session.add(order_product)
         db.session.delete(basket_product)
