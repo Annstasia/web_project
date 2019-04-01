@@ -257,12 +257,13 @@ def product_page(category, id):
             if form.product_name.data:
                 product.product_name = form.product_name.data
             if form.cost.data:
+                print(form.cost.data)
                 if not form.cost.data.isdigit():
                     form.cost.errors = ['Неверный формат числа']
                 product.cost = form.cost.data
             if form.count.data:
-                if not form.cost.data.isdigit():
-                    form.cost.errors = ['Неверный формат числа']
+                if not form.count.data.isdigit():
+                    form.count.errors = ['Неверный формат числа']
                 product.count = form.count.data
             if form.s_description.data:
                 product.s_description = form.s_description.data
