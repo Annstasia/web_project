@@ -7,7 +7,7 @@
 {% for product in order_products %}
 <div class="product_div">
     <img src="{{product.main_photo}}" class="f_left">
-    <div class="name"><h1>{{product.product_name}}</h1></div>
+    <div class="name"><a href="/categories/{{product.category}}/{{product.id}}"><h1>{{product.product_name}}</h1></a></div>
     <div class="s_description">{{product.s_description}}</div>
     <h2 style="color: purple;" class="name">Цена за шт: {{product.cost}}</h2>
 
@@ -20,7 +20,7 @@
     <form method="post">
         <button type="submit" class='cost f_right' name="{{product.id}}" value="{{product.id}}">Оплатить</button>
     </form>
-    <div class="name"><h1>{{product.product_name}}</h1></div>
+    <div class="name"><a href="/categories/{{product.category}}/{{product.id}}"><h1>{{product.product_name}}</h1></a></div>
     <div class="s_description">{{product.s_description}}</div>
     <h2 style="color: purple;" class="name">Цена за шт: {{product.cost}}</h2>
 

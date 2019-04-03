@@ -41,6 +41,7 @@
     <form method="post">
         {% if in_basket %}
         <button type="submit" name="submit_button" value="pay" class="cost" >Оплатить</button>
+        <button type="submit" name="submit_button" value="delete" class="delete" >Удалить из корзины</button>
         {% else %}
         <button type="submit" name="submit_button" class="cost" value="append">Добавить в карзину</button>
         {%endif%}
